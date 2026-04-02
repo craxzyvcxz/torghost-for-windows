@@ -42,3 +42,15 @@ To run it as Administrator easily, you may want to convert it into a `.exe` file
 
 * The program can run without Administrator privileges
 * Running as Administrator reduces errors and improves reliability
+
+## Credit
+
+This tool is inspired by the original **TorGhost (Linux)**.  
+This is a Windows version made for all users who want the same experience on Windows.  
+
+If you’re a Linux user, check out the OG TorGhost here:  
+[https://github.com/SusmithKrishnan/torghost](https://github.com/SusmithKrishnan/torghost)  
+
+For Windows users, this is probably the **only TorGhost-compatible tool** available, so enjoy!  
+
+Love y’all ❤️
