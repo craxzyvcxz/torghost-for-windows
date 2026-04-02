@@ -51,7 +51,7 @@ class VPN012:
         if os.path.exists(tor_path):
             try:
                 self.tor_process = subprocess.Popen([tor_path], creationflags=subprocess.CREATE_NO_WINDOW)
-                print("[012 VPN] tor.exe auto-started from same folder")
+                print("[TorGhost VPN] tor.exe auto-started from same folder")
                 time.sleep(4)
             except:
                 pass
