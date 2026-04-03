@@ -25,6 +25,9 @@ A simple Windows GUI tool that routes your internet through Tor using a SOCKS pr
 
 This is **NOT a full VPN**.
 Some applications may bypass the proxy and use your normal internet connection.
+so you must use a a real vpn before connecting if you want to be extra safe
+you could go wiht proton or mullvad
+so like vpn then open tor.exe and then open the script and enjoy extra safety
 
 ## Troubleshooting
 
