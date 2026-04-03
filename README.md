@@ -54,3 +54,12 @@ If you’re a Linux user, check out the OG TorGhost here:
 For Windows users, this is probably the **only TorGhost-compatible tool** available, so enjoy!  
 
 Love y’all ❤️
+
+
+
+## Update
+
+i just updated this repo added new features
+Kill switch
+Auto rotate
+enjoy yall :)
