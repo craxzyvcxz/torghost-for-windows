@@ -9,19 +9,18 @@ import threading
 class TorGhostVPN:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Tor Ghost VPN  - Windows Edition")
-        self.root.geometry("580x580")
+        self.root.title("Tor Ghost VPN v2.3 - Windows Edition")
+        self.root.geometry("580x560")
         self.root.configure(bg="#0a0a0a")
         self.root.resizable(False, False)
         self.is_on = False
         self.tor_process = None
-        self.rotate_thread = None
         self.stop_rotate = False
         self.killswitch_active = False
-        self.strict_mode = True
+        self.monitor_thread = None
         self.show_instruction_and_start_tor()
        
-        tk.Label(self.root, text="TOR GHOST VPN v2.1",
+        tk.Label(self.root, text="TOR GHOST VPN v2.3",
                  font=("Arial", 28, "bold"), fg="#00ff41", bg="#0a0a0a").pack(pady=15)
        
         self.status_label = tk.Label(self.root, text="TOR: OFF",
@@ -38,11 +37,6 @@ class TorGhostVPN:
                                         width=25, height=2, command=self.toggle_killswitch)
         self.killswitch_btn.pack(pady=8)
        
-        self.strict_btn = tk.Button(self.root, text="STRICT MODE: ON (Blocks leaks)",
-                                    font=("Arial", 12, "bold"), bg="#00cc00", fg="black",
-                                    width=30, height=2, command=self.toggle_strict_mode)
-        self.strict_btn.pack(pady=8)
-       
         self.rotate_btn = tk.Button(self.root, text="ROTATE TOR CIRCUIT",
                                     font=("Arial", 12, "bold"), bg="#0088ff", fg="white",
                                     width=25, height=2, command=self.start_rotation)
@@ -50,9 +44,9 @@ class TorGhostVPN:
        
         self.instruction_label = tk.Label(self.root,
             text="tor.exe must be in the same folder.\n"
-                 "Strict Mode: ANY connection that ignores Tor gets BLOCKED instantly.\n"
-                 "DNS forced through Tor - No leaks allowed.\n"
-                 "Kill Switch + Strict = Maximum ghosting.",
+                 "If a website ignores Tor proxy 9050 → it gets blocked automatically.\n"
+                 "DNS forced through Tor - No leaks.\n"
+                 "Kill Switch for extra safety.",
             font=("Arial", 9), fg="#aaaaaa", bg="#0a0a0a", justify="left", wraplength=520)
         self.instruction_label.pack(pady=25, padx=20)
         
@@ -65,12 +59,12 @@ class TorGhostVPN:
             try:
                 self.tor_process = subprocess.Popen([tor_path],
                                                     creationflags=subprocess.CREATE_NO_WINDOW)
-                print("[TorGhost v2.1] tor.exe auto-started")
+                print("[TorGhost v2.3] tor.exe auto-started")
                 time.sleep(5)
             except Exception as e:
                 print(f"[Error] Failed to start tor.exe: {e}")
         else:
-            print("[TorGhost v2.1] tor.exe not found!")
+            print("[TorGhost v2.3] tor.exe not found!")
 
     def set_proxy(self, enable):
         try:
@@ -93,19 +87,17 @@ class TorGhostVPN:
             messagebox.showerror("Admin Rights Required", "Run as Administrator!\nError: " + str(e))
             return False
 
-    def enable_strict_firewall(self):
+    def enable_proxy_block(self):
         try:
-            subprocess.run('netsh advfirewall firewall add rule name="TorGhost_Strict_Block" dir=out action=block enable=yes', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            subprocess.run('netsh advfirewall firewall add rule name="TorGhost_Allow_Tor" dir=out action=allow protocol=TCP localport=9050 enable=yes', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            print("[TorGhost] Strict Mode Firewall Activated - Non-Tor traffic BLOCKED")
+            subprocess.run('netsh advfirewall firewall add rule name="TorGhost_ProxyBlock" dir=out action=block enable=yes remoteport=80,443 protocol=TCP', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            print("[TorGhost] Proxy bypass block activated - Direct connections to 80/443 will be blocked")
         except:
-            print("[TorGhost] Failed to set strict firewall")
+            print("[TorGhost] Failed to activate proxy block")
 
-    def disable_strict_firewall(self):
+    def disable_proxy_block(self):
         try:
-            subprocess.run('netsh advfirewall firewall delete rule name="TorGhost_Strict_Block"', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            subprocess.run('netsh advfirewall firewall delete rule name="TorGhost_Allow_Tor"', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            print("[TorGhost] Strict firewall rules removed")
+            subprocess.run('netsh advfirewall firewall delete rule name="TorGhost_ProxyBlock"', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            print("[TorGhost] Proxy bypass block removed")
         except:
             pass
 
@@ -128,20 +120,6 @@ class TorGhostVPN:
         except:
             pass
 
-    def toggle_strict_mode(self):
-        if not self.is_on:
-            messagebox.showwarning("Strict Mode", "Turn ON the VPN first!")
-            return
-        self.strict_mode = not self.strict_mode
-        if self.strict_mode:
-            self.strict_btn.config(text="STRICT MODE: ON (Blocks leaks)", bg="#00cc00")
-            self.enable_strict_firewall()
-            messagebox.showinfo("Strict Mode", "STRICT MODE ENABLED\nAny app ignoring Tor proxy will be blocked!")
-        else:
-            self.strict_btn.config(text="STRICT MODE: OFF", bg="#ff8800")
-            self.disable_strict_firewall()
-            messagebox.showinfo("Strict Mode", "Strict Mode disabled (leaks possible)")
-
     def toggle_killswitch(self):
         if not self.is_on:
             messagebox.showwarning("Kill Switch", "Turn ON the VPN first!")
@@ -155,13 +133,11 @@ class TorGhostVPN:
             messagebox.showinfo("Kill Switch", "Kill Switch disabled.")
 
     def monitor_tor(self):
-        while self.is_on and (self.killswitch_active or self.strict_mode):
+        while self.is_on:
             if not self.is_tor_alive():
                 print("[KILL SWITCH] Tor died → Triggered protection!")
                 if self.killswitch_active:
                     self.kill_internet()
-                if self.strict_mode:
-                    self.disable_strict_firewall()
                 messagebox.showerror("Protection Triggered", "Tor died!\nProtection activated.")
                 self.toggle_vpn()
                 break
@@ -173,18 +149,18 @@ class TorGhostVPN:
                 self.is_on = True
                 self.status_label.config(text="TOR GHOST VPN: ON", fg="#00ff41")
                 self.toggle_btn.config(text="TURN OFF TOR GHOST VPN", bg="#cc0000")
-                if self.strict_mode:
-                    self.enable_strict_firewall()
-                messagebox.showinfo("Success", "TOR GHOST v2.1 ACTIVE\nStrict leak blocking enabled!")
-                if self.killswitch_active or self.strict_mode:
-                    threading.Thread(target=self.monitor_tor, daemon=True).start()
+                self.enable_proxy_block()
+                messagebox.showinfo("Success", "TOR GHOST v2.3 ACTIVE\nWebsites ignoring proxy 9050 will be blocked!")
+                if self.killswitch_active:
+                    self.monitor_thread = threading.Thread(target=self.monitor_tor, daemon=True)
+                    self.monitor_thread.start()
         else:
             if self.set_proxy(False):
                 self.is_on = False
                 self.status_label.config(text="TOR: OFF", fg="red")
                 self.toggle_btn.config(text="TURN ON TOR GHOST VPN", bg="#00cc00")
                 self.stop_rotate = True
-                self.disable_strict_firewall()
+                self.disable_proxy_block()
                 self.restore_internet()
                 messagebox.showinfo("Tor Ghost VPN", "Normal connection restored. All blocks removed.")
 
@@ -247,7 +223,7 @@ class TorGhostVPN:
         self.stop_rotate = True
         if self.is_on:
             self.set_proxy(False)
-            self.disable_strict_firewall()
+            self.disable_proxy_block()
         if self.tor_process:
             try:
                 self.tor_process.terminate()
@@ -257,6 +233,6 @@ class TorGhostVPN:
         self.root.destroy()
 
 if __name__ == "__main__":
-    print("Starting Tor Ghost VPN v2.1 ")
+    print("Starting Tor Ghost VPN v2.3")
     print("Run as Administrator for full power!")
     TorGhostVPN()
