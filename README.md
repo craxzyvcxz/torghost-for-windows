@@ -68,5 +68,5 @@ Auto rotate
 enjoy yall :)
 
 ## Update (again)
-added strict mode (anit leak protection)
+added Strict Mode (anit leak protection)
 now you don't need a vpn before executing it but still use if you want to be extra safe
